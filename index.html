@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Avaliação de Merecimento - Sgt PM - v1.5</title>
+
+  <!-- jsPDF + AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f0f0f0;
+      --card:#ffffff;
+      --primary:#003366;
+      --primary2:#005599;
+      --border:#ddd;
+    }
+
+    *{ box-sizing:border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 8px;
+      background-color: var(--bg);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: var(--card);
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: var(--primary);
+      text-align: center;
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      font-size: 1.25rem;
+      line-height: 1.3;
+    }
+
+    h2 {
+      color: var(--primary2);
+      margin-top: 24px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--primary2);
+      padding-left: 12px;
+      font-size: 1.1rem;
+      line-height: 1.3;
+    }
+
+    .section {
+      margin-bottom: 20px;
+      padding: 16px;
+      background-color: #f9f9f9;
+      border-radius: 6px;
+    }
+
+    /* Sem rolagem horizontal */
+    .table-wrap {
+      width: 100%;
+      overflow: visible;
+      border-radius: 6px;
+      margin-top: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 0;               /* remove min-width que forçava scroll */
+      background: white;
+      font-size: 0.9rem;
+      table-layout: fixed;        /* favorece quebra de linha */
+    }
+
+    th, td {
+      padding: 12px 8px;
+      text-align: left;
+      border: 1px solid var(--border);
+      vertical-align: middle;
+      word-break: break-word;     /* quebra palavras longas */
+      white-space: normal;        /* permite quebra */
+    }
+
+    th {
+      background-color: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    /* Inputs responsivos */
+    input[type="number"],
+    input[type="text"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+      min-height: 44px;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0,51,102,0.1);
+    }
+
+    /* Mobile vs Desktop controls */
+    .only-mobile { display: none; }
+    .only-desktop { display: block; }
+
+    /* Botões */
+    .btn-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+      align-items: center;
+    }
+
+    .btn-pdf, .btn-limpar {
+      width: 100%;
+      max-width: 400px;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-pdf {
+      background-color: #008000;
+      color: white;
+    }
+
+    .btn-pdf:hover {
+      background-color: #006400;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-limpar {
+      background-color: #cc0000;
+      color: white;
+    }
+
+    .btn-limpar:hover {
+      background-color: #aa0000;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .btn-pdf:active, .btn-limpar:active {
+      transform: translateY(0);
+    }
+
+    .subtotal {
+      background-color: #e6f2ff;
+      font-weight: 600;
+    }
+
+    .negativo {
+      background-color: #ffe6e6;
+    }
+
+    .total-geral {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary2) 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-top: 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,51,102,0.2);
+    }
+
+    .info {
+      font-size: 0.85rem;
+      color: #666;
+      font-style: italic;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #fff;
+      border-radius: 4px;
+      border-left: 3px solid var(--primary2);
+    }
+
+    .footer {
+      max-width: 1200px;
+      margin: 16px auto 0;
+      padding: 16px;
+      border-top: 2px solid var(--border);
+      text-align: center;
+      color: #444;
+      font-size: 0.8rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .footer .linha2 {
+      margin-top: 8px;
+      color: #666;
+      font-style: italic;
+    }
+
+    /* Responsividade para tablets */
+    @media (min-width: 600px) {
+      body { padding: 16px; }
+      .container { padding: 24px; }
+      h1 { font-size: 1.5rem; }
+      h2 { font-size: 1.2rem; }
+      .total-geral { font-size: 1.4rem; }
+
+      .btn-container {
+        flex-direction: row;
+        justify-content: center;
+      }
+
+      .btn-pdf, .btn-limpar {
+        width: auto;
+        min-width: 200px;
+      }
+    }
+
+    /* Desktop */
+    @media (min-width: 900px) {
+      body { padding: 24px; }
+      .container { padding: 32px; }
+      h1 { font-size: 1.75rem; }
+      h2 { font-size: 1.3rem; margin-top: 32px; }
+      .section { padding: 20px; }
+      .total-geral { font-size: 1.6rem; padding: 24px; }
+      table { font-size: 1rem; }
+      th, td { padding: 14px 12px; }
+    }
+
+    /* Telas muito pequenas */
+    @media (max-width: 360px) {
+      h1 { font-size: 1.1rem; }
+      .total-geral { font-size: 1.1rem; padding: 16px; }
+      th, td { padding: 8px 6px; font-size: 0.85rem; }
+    }
+
+    /* MOBILE: tabelas viram "cards" verticais (sem rolagem horizontal) */
+    @media (max-width: 599px) {
+      .only-desktop { display: none !important; }
+      .only-mobile  { display: block !important; }
+
+      table { border: 0; }
+      table tr { display: block; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+      table tr:first-child { margin-bottom: 0; } /* cabeçalho some, mas mantém estrutura */
+
+      table th { display: none; }
+
+      table td {
+        display: block;
+        width: 100%;
+        border: 0;
+        border-top: 1px solid var(--border);
+        padding: 10px 10px 10px 10px;
+      }
+
+      table td:first-child { border-top: 0; }
+
+      /* rótulo à esquerda (data-label) */
+      table td[data-label] {
+        position: relative;
+        padding-left: 48%;
+      }
+      table td[data-label]::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 44%;
+        font-weight: 700;
+        color: var(--primary);
+        line-height: 1.2;
+      }
+
+      /* linhas subtotal/negativo continuam legíveis */
+      .subtotal td[data-label]::before,
+      .negativo td[data-label]::before {
+        color: #000;
+      }
+    }
+
+    /* Melhorias de acessibilidade */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>SISTEMA DE AVALIAÇÃO DE MERECIMENTO<br>SARGENTO PM</h1>
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section">
+    <h2>IDENTIFICAÇÃO</h2>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>RE/Nome</th>
+          <th>Graduação Atual</th>
+          <th>Data 3º Sgt</th>
+          <th>Data Grad. Atual</th>
+          <th>Data-Base Cogitação</th>
+          <th>OPM</th>
+        </tr>
+        <tr>
+          <td><input type="text" id="nome" aria-label="Nome"></td>
+          <td>
+            <select id="graduacao" aria-label="Graduação">
+              <option value="">Selecione</option>
+              <option value="2º Sgt PM">2º Sgt PM</option>
+              <option value="1º Sgt PM">1º Sgt PM</option>
+            </select>
+          </td>
+          <td><input type="date" id="data3Sgt" aria-label="Data 3º Sgt"></td>
+          <td><input type="date" id="dataGradAtual" aria-label="Data Graduação Atual"></td>
+          <td>
+            <select id="dataBaseCogitacao" aria-label="Data Base Cogitação">
+              <option value="">Selecione</option>
+              <option value="03-31">31/Mar (1º Sem 2026)</option>
+              <option value="08-31">31/Ago (2º Sem 2026)</option>
+            </select>
+          </td>
+          <td><input type="text" id="opm" aria-label="OPM"></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 1. AVALIAÇÃO DE DESEMPENHO (SADE) -->
+  <div class="section">
+    <h2>1. AVALIAÇÃO DE DESEMPENHO (SADE)</h2>
+    <p class="info">Média aritmética dos conceitos na graduação atual</p>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>Conceito</th>
+          <th>Pontos por Avaliação</th>
+          <th>Quantidade</th>
+          <th>Total</th>
+        </tr>
+        <tr>
+          <td>Superior</td><td>3</td>
+          <td>
+            <input class="only-desktop" type="number" id="avSuperior" min="0" value="0">
+          </td>
+          <td id="totalAvSuperior">0,00</td>
+        </tr>
+        <tr>
+          <td>Normal com Tendência Superior</td><td>2</td>
+          <td>
+            <input class="only-desktop" type="number" id="avNormalSup" min="0" value="0">
+          </td>
+          <td id="totalAvNormalSup">0,00</td>
+        </tr>
+        <tr>
+          <td>Normal com Tendência Inferior</td><td>1</td>
+          <td>
+            <input class="only-desktop" type="number" id="avNormalInf" min="0" value="0">
+          </td>
+          <td id="totalAvNormalInf">0,00</td>
+        </tr>
+        <tr>
+          <td>Inferior</td><td>-3</td>
+          <td>
+            <input class="only-desktop" type="number" id="avInferior" min="0" value="0">
+          </td>
+          <td id="totalAvInferior">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="3">MÉDIA AVALIAÇÕES</td>
+          <td id="mediaAvaliacoes">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. ELOGIOS -->
+  <div class="section">
+    <h2>2. ELOGIOS</h2>
+    <p class="info">0,2 ponto por elogio, até o limite de 1 ponto (máximo 5 elogios)</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Quantidade de Elogios</th><th>Pontuação</th></tr>
+        <tr>
+          <td>
+            <input class="only-desktop" type="number" id="elogios" min="0" max="5" value="0">
+          </td>
+          <td id="pontosElogios">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. CURSOS PM -->
+  <div class="section">
+    <h2>3. CURSOS DA POLÍCIA MILITAR</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Curso</th><th>Nota/Informação</th><th>Pontuação</th></tr>
+        <tr>
+          <td>Curso de Formação de Sargentos (CFS)</td>
+          <td>
+            <input type="number" id="notaCFS" min="0" max="10" step="0.1" value="0" placeholder="Nota final" data-keep-input="1">
+          </td>
+          <td id="pontosCFS">0,000</td>
+        </tr>
+        <tr>
+          <td>Curso de Aperfeiçoamento de Sargentos (CAS)</td>
+          <td>
+            <input type="number" id="notaCAS" min="0" max="10" step="0.1" value="0" placeholder="Nota final" data-keep-input="1">
+          </td>
+          <td id="pontosCAS">0,000</td>
+        </tr>
+        <tr>
+          <td>Bacharelado em Educação Física (EEF/PMESP)</td>
+          <td>
+            <select id="bachEF">
+              <option value="0">Não</option>
+              <option value="1">Sim</option>
+            </select>
+          </td>
+          <td id="pontosBachEF">0,00</td>
+        </tr>
+        <tr>
+          <td>CEP ou EEP correlatos à função (0,6 ponto, máx 1)</td>
+          <td>
+            <input class="only-desktop" type="number" id="outrosCursosPM" min="0" max="1" value="0">
+          </td>
+          <td id="pontosOutrosCursosPM">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="2">SUBTOTAL CURSOS PM</td>
+          <td id="subtotalCursosPM">0,000</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. CURSOS SUPERIORES EXTERNOS -->
+  <div class="section">
+    <h2>4. CURSOS DE ENSINO SUPERIOR (Instituições Externas)</h2>
+    <p class="info">Cursos de educação superior considerados de interesse da PMESP conforme Bol G PM 11, de 17JAN22</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Tipo de Curso</th><th>Quantidade</th><th>Pontuação</th></tr>
+        <tr>
+          <td>Graduação de interesse PM (1 ponto cada, máx 2)</td>
+          <td><input class="only-desktop" type="number" id="gradInteresse" min="0" max="2" value="0"></td>
+          <td id="pontosGradInteresse">0,00</td>
+        </tr>
+        <tr>
+          <td>Graduação SEM interesse (0,3 ponto, máx 1)</td>
+          <td><input class="only-desktop" type="number" id="gradGeral" min="0" max="1" value="0"></td>
+          <td id="pontosGradGeral">0,00</td>
+        </tr>
+        <tr>
+          <td>Pós-graduação Lato Sensu de interesse PM (0,5 cada, máx 2)</td>
+          <td><input class="only-desktop" type="number" id="posInteresse" min="0" max="2" value="0"></td>
+          <td id="pontosPosInteresse">0,00</td>
+        </tr>
+        <tr>
+          <td>Pós-graduação Lato Sensu SEM interesse (0,2, máx 1)</td>
+          <td><input class="only-desktop" type="number" id="posGeral" min="0" max="1" value="0"></td>
+          <td id="pontosPosGeral">0,00</td>
+        </tr>
+        <tr>
+          <td>Mestrado (1,5 ponto, máx 1)</td>
+          <td><input class="only-desktop" type="number" id="mestrado" min="0" max="1" value="0"></td>
+          <td id="pontosMestrado">0,00</td>
+        </tr>
+        <tr>
+          <td>Doutorado (2 pontos, máx 1)</td>
+          <td><input class="only-desktop" type="number" id="doutorado" min="0" max="1" value="0"></td>
+          <td id="pontosDoutorado">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="2">SUBTOTAL CURSOS SUPERIORES</td>
+          <td id="subtotalCursosSuperiores">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. OUTROS CURSOS -->
+  <div class="section">
+    <h2>5. OUTROS CURSOS (mínimo 30h)</h2>
+    <p class="info">Instituições militares, admin. pública ou privadas - 0,2 cada, máx 0,6</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Quantidade de Cursos</th><th>Pontuação</th></tr>
+        <tr>
+          <td><input class="only-desktop" type="number" id="outrosCursos" min="0" max="3" value="0"></td>
+          <td id="pontosOutrosCursos">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. CONDECORAÇÕES -->
+  <div class="section">
+    <h2>6. CONDECORAÇÕES</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Condecoração</th><th>Possui?</th><th>Pontuação</th></tr>
+        <tr>
+          <td>Medalha Brigadeiro Tobias</td>
+          <td>
+            <select id="medBrigTobias">
+              <option value="0">Não</option>
+              <option value="1">Sim (1 ponto)</option>
+            </select>
+          </td>
+          <td id="pontosBrigTobias">0,00</td>
+        </tr>
+        <tr>
+          <td>Medalha Valor Militar (mais recente)</td>
+          <td>
+            <select id="medValorMil">
+              <option value="0">Não possui</option>
+              <option value="0.5">Ouro (0,5)</option>
+              <option value="0.4">Prata (0,4)</option>
+              <option value="0.3">Bronze (0,3)</option>
+            </select>
+          </td>
+          <td id="pontosValorMil">0,00</td>
+        </tr>
+        <tr>
+          <td>Medalha Pedro Dias de Campos</td>
+          <td>
+            <select id="medPedroDias">
+              <option value="0">Não</option>
+              <option value="1">Sim (1 ponto)</option>
+            </select>
+          </td>
+          <td id="pontosPedroDias">0,00</td>
+        </tr>
+        <tr>
+          <td>Medalha Cruz de Sangue</td>
+          <td>
+            <select id="medCruzSangue">
+              <option value="0">Não</option>
+              <option value="0.3">Sim (0,3 ponto)</option>
+            </select>
+          </td>
+          <td id="pontosCruzSangue">0,00</td>
+        </tr>
+        <tr>
+          <td>Láurea do Mérito Pessoal (mais recente)</td>
+          <td>
+            <select id="laureaMerito">
+              <option value="0">Não possui</option>
+              <option value="0.3">1º Grau (0,3)</option>
+              <option value="0.2">2º ou 3º Grau (0,2)</option>
+              <option value="0.1">4º ou 5º Grau (0,1)</option>
+            </select>
+          </td>
+          <td id="pontosLaureaMerito">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="2">SUBTOTAL CONDECORAÇÕES</td>
+          <td id="subtotalCondecoracoes">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. IDIOMAS -->
+  <div class="section">
+    <h2>7. CREDENCIAMENTO EM IDIOMAS</h2>
+    <p class="info">0,2 ponto por idioma credenciado (estrangeiro ou LIBRAS)</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Quantidade de Idiomas</th><th>Pontuação</th></tr>
+        <tr>
+          <td><input class="only-desktop" type="number" id="idiomas" min="0" value="0"></td>
+          <td id="pontosIdiomas">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 8. COMPORTAMENTO -->
+  <div class="section">
+    <h2>8. COMPORTAMENTO DISCIPLINAR</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Classificação</th><th>Pontuação</th></tr>
+        <tr>
+          <td>
+            <select id="comportamento">
+              <option value="0">Bom (0 pontos)</option>
+              <option value="0.2">Ótimo (0,2 ponto)</option>
+              <option value="0.4">Excelente (0,4 ponto)</option>
+            </select>
+          </td>
+          <td id="pontosComportamento">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 9. TEMPO DE SERVIÇO -->
+  <div class="section">
+    <h2>9. TEMPO DE SERVIÇO</h2>
+    <p class="info">Calculado automaticamente com base nas datas informadas na identificação</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Critério</th><th>Anos</th><th>Pontuação</th></tr>
+        <tr>
+          <td>Anos como Sargento (0,5 por ano)</td>
+          <td id="displayAnosSgt">-</td>
+          <td id="pontosAnosSgt">0,00</td>
+        </tr>
+        <tr>
+          <td>Anos na graduação atual (0,2 por ano)</td>
+          <td id="displayAnosGradAtual">-</td>
+          <td id="pontosAnosGradAtual">0,00</td>
+        </tr>
+        <tr>
+          <td>Anos em Órgão de Execução (0,1 por ano)</td>
+          <td id="displayAnosOrgExec">-</td>
+          <td id="pontosAnosOrgExec">0,00</td>
+        </tr>
+        <tr class="negativo">
+          <td>Meses agregado (-0,2 por mês)</td>
+          <td><input class="only-desktop" type="number" id="mesesAgregado" min="0" value="0"></td>
+          <td id="pontosMesesAgregado">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="2">SUBTOTAL TEMPO DE SERVIÇO</td>
+          <td id="subtotalTempoServico">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 10. TAF -->
+  <div class="section">
+    <h2>10. APTIDÃO FÍSICA (TAF)</h2>
+    <p class="info">Média aritmética dos resultados na graduação atual</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Resultado</th><th>Pontos por TAF</th><th>Quantidade</th><th>Total</th></tr>
+        <tr>
+          <td>Muito Bom</td><td>3</td>
+          <td><input class="only-desktop" type="number" id="tafMuitoBom" min="0" value="0"></td>
+          <td id="totalTafMuitoBom">0,00</td>
+        </tr>
+        <tr>
+          <td>Bom</td><td>2</td>
+          <td><input class="only-desktop" type="number" id="tafBom" min="0" value="0"></td>
+          <td id="totalTafBom">0,00</td>
+        </tr>
+        <tr>
+          <td>Regular</td><td>1</td>
+          <td><input class="only-desktop" type="number" id="tafRegular" min="0" value="0"></td>
+          <td id="totalTafRegular">0,00</td>
+        </tr>
+        <tr>
+          <td>Aprovado TAF-4</td><td>1</td>
+          <td><input class="only-desktop" type="number" id="tafTAF4" min="0" value="0"></td>
+          <td id="totalTafTAF4">0,00</td>
+        </tr>
+        <tr>
+          <td>Inapto</td><td>0</td>
+          <td><input class="only-desktop" type="number" id="tafInapto" min="0" value="0"></td>
+          <td id="totalTafInapto">0,00</td>
+        </tr>
+        <tr>
+          <td>Não realizou (com justificativa médica)</td><td>0</td>
+          <td><input class="only-desktop" type="number" id="tafNaoRealizadoMed" min="0" value="0"></td>
+          <td id="totalTafNaoRealizadoMed">0,00</td>
+        </tr>
+        <tr class="negativo">
+          <td>Não realizou (sem justificativa)</td><td>-3</td>
+          <td><input class="only-desktop" type="number" id="tafNaoRealizado" min="0" value="0"></td>
+          <td id="totalTafNaoRealizado">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="3">MÉDIA TAF</td>
+          <td id="mediaTaf">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 11. PUNIÇÕES -->
+  <div class="section negativo">
+    <h2>11. PUNIÇÕES DISCIPLINARES</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Tipo de Punição</th><th>Quantidade</th><th>Desconto</th></tr>
+        <tr>
+          <td>Advertência (-0,1 cada)</td>
+          <td><input class="only-desktop" type="number" id="puniAdvertencia" min="0" value="0"></td>
+          <td id="descontoAdvertencia">0,00</td>
+        </tr>
+        <tr>
+          <td>Repreensão (-0,3 cada)</td>
+          <td><input class="only-desktop" type="number" id="puniRepreensao" min="0" value="0"></td>
+          <td id="descontoRepreensao">0,00</td>
+        </tr>
+        <tr>
+          <td>Permanência Disciplinar (PG: 0,5; 1; 2; 4...)</td>
+          <td><input class="only-desktop" type="number" id="puniPermanencia" min="0" value="0"></td>
+          <td id="descontoPermanencia">0,00</td>
+        </tr>
+        <tr>
+          <td>Detenção (PG: 2; 4; 8; 16...)</td>
+          <td><input class="only-desktop" type="number" id="puniDetencao" min="0" value="0"></td>
+          <td id="descontoDetencao">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="2">SUBTOTAL PUNIÇÕES</td>
+          <td id="subtotalPunicoes">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12. ASPECTOS SUBJETIVOS -->
+  <div class="section">
+    <h2>12. ASPECTOS SUBJETIVOS</h2>
+    <p class="info">Pontuação sujeita a variação de 0 a 10 pontos - Artigos 48 e 49 do RI-24-PM</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Conceito</th><th>Pontuação</th></tr>
+        <tr>
+          <td>Comandante</td>
+          <td id="pontosConceitoComandante">10,00</td>
+        </tr>
+        <tr>
+          <td>CPP</td>
+          <td id="pontosConceitoCPP">10,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td>SUBTOTAL ASPECTOS SUBJETIVOS</td>
+          <td id="subtotalConceitosFixos">20,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 13. CONDENAÇÕES PENAIS -->
+  <div class="section negativo">
+    <h2>13. CONDENAÇÕES PENAIS (com trânsito em julgado)</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Tipo de Condenação</th><th>Quantidade</th><th>Desconto</th></tr>
+        <tr>
+          <td>Crime doloso &gt; 6 meses (-2 cada)</td>
+          <td><input class="only-desktop" type="number" id="crimeDoloso6Mais" min="0" value="0"></td>
+          <td id="descontoCrimeDoloso6Mais">0,00</td>
+        </tr>
+        <tr>
+          <td>Crime doloso &lt; 6 meses (-1,5 cada)</td>
+          <td><input class="only-desktop" type="number" id="crimeDoloso6Menos" min="0" value="0"></td>
+          <td id="descontoCrimeDoloso6Menos">0,00</td>
+        </tr>
+        <tr>
+          <td>Crime culposo &gt; 6 meses (-1 cada)</td>
+          <td><input class="only-desktop" type="number" id="crimeCulposo6Mais" min="0" value="0"></td>
+          <td id="descontoCrimeCulposo6Mais">0,00</td>
+        </tr>
+        <tr>
+          <td>Crime culposo &lt; 6 meses (-0,5 cada)</td>
+          <td><input class="only-desktop" type="number" id="crimeCulposo6Menos" min="0" value="0"></td>
+          <td id="descontoCrimeCulposo6Menos">0,00</td>
+        </tr>
+        <tr>
+          <td>Contravenção penal (-0,3 cada)</td>
+          <td><input class="only-desktop" type="number" id="contravencao" min="0" value="0"></td>
+          <td id="descontoContravencao">0,00</td>
+        </tr>
+        <tr class="subtotal">
+          <td colspan="2">SUBTOTAL CONDENAÇÕES</td>
+          <td id="subtotalCondenacoes">0,00</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- TOTAL -->
+  <div class="total-geral" id="totalGeral">
+    PONTUAÇÃO TOTAL: 0,000 PONTOS
+  </div>
+
+  <div class="btn-container">
+    <button class="btn-pdf" onclick="gerarPDF()">GERAR PDF</button>
+    <button class="btn-limpar" onclick="limparFormulario()">Limpar Formulário</button>
+  </div>
+</div>
+
+<div class="footer">
+  <div>Desenvolvido por 2º Sgt PM Elton Pereira dos Santos - Todos os direitos reservados</div>
+  <div class="linha2">
+    Compete exclusivamente à CPP a aferição e validação das informações, não devendo o presente relatório ser utilizado para fins de questionamento ou impugnação.
+  </div>
+  <div class="linha2">Versão 1.5 – Atualizada em 08 jan. 2026</div>
+</div>
+
+<script>
+  const versaoSistema = "Versão 1.5 – Atualizada em 08 jan. 2026";
+
+  /* ====== MOBILE: cria selects “espelho” para inputs numéricos (sem alterar IDs) ====== */
+  function inferMaxForInput(input){
+    // Se já tem max no HTML, usa.
+    const attrMax = input.getAttribute("max");
+    if (attrMax !== null && attrMax !== "") return parseFloat(attrMax);
+
+    const id = (input.id || "").toLowerCase();
+
+    // Heurísticas por campo sem max
+    if (id.includes("meses")) return 120;                 // mesesAgregado
+    if (id.includes("nota")) return 10;                   // notas (se faltar max)
+    if (id.includes("puni")) return 10;                   // punições (qtd)
+    if (id.includes("crime") || id.includes("contrav")) return 10;
+    if (id.includes("taf") || id.includes("av")) return 10;
+    if (id.includes("idiom")) return 10;
+
+    // padrão conservador
+    return 20;
+  }
+
+  function buildSelectForNumberInput(input){
+  if (!input || input.type !== "number") return;
+  if (input.dataset.keepInput === "1" || input.id === "notaCFS" || input.id === "notaCAS") return;
+  if (input.dataset.mobileSelectBuilt === "1") return;
+
+
+
+    const min = (input.getAttribute("min") !== null && input.getAttribute("min") !== "") ? parseFloat(input.getAttribute("min")) : 0;
+    const max = inferMaxForInput(input);
+    const step = (input.getAttribute("step") !== null && input.getAttribute("step") !== "" && input.getAttribute("step") !== "any")
+      ? parseFloat(input.getAttribute("step"))
+      : 1;
+
+    const sel = document.createElement("select");
+    sel.className = "only-mobile";
+    sel.setAttribute("aria-label", input.getAttribute("aria-label") || input.id || "Valor");
+    sel.dataset.mirrorInputId = input.id;
+
+    // Gera opções respeitando min/max/step
+    // Proteção para loop com floating point
+    const toFixedStep = (v) => {
+      // define casas decimais conforme step
+      const s = String(step);
+      const decimals = s.includes(".") ? (s.split(".")[1].length) : 0;
+      return Number(v.toFixed(decimals));
+    };
+
+    let v = min;
+    const safety = 2000; // evita loop infinito
+    let count = 0;
+
+    while (v <= max + (step / 2) && count < safety) {
+      const val = toFixedStep(v);
+      const opt = document.createElement("option");
+      opt.value = String(val);
+      opt.textContent = String(val).replace(".", ",");
+      sel.appendChild(opt);
+
+      v = v + step;
+      count++;
+    }
+
+    // Valor inicial
+    const current = (input.value !== "" ? Number(input.value) : min);
+    sel.value = String(toFixedStep(current));
+
+    // Mobile select -> atualiza input (que mantém o ID e alimenta os cálculos)
+    sel.addEventListener("change", () => {
+      input.value = sel.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    // Desktop input -> mantém select sincronizado
+    input.addEventListener("input", () => {
+      const val = (input.value !== "" ? Number(input.value) : min);
+      const fixed = toFixedStep(val);
+      // se valor não existir na lista (ex: digitou 7.3 com step 0.1 existe; se não existir, aproxima)
+      if ([...sel.options].some(o => o.value === String(fixed))) sel.value = String(fixed);
+    });
+
+    input.classList.add("only-desktop");
+    input.insertAdjacentElement("afterend", sel);
+    input.dataset.mobileSelectBuilt = "1";
+  }
+
+  function buildAllMobileSelects(){
+    document.querySelectorAll('input[type="number"]').forEach(buildSelectForNumberInput);
+  }
+
+  /* ====== Labels automáticos para modo “vertical cards” no mobile ====== */
+  function applyDataLabels(){
+    document.querySelectorAll("table").forEach((tbl) => {
+      const headerRow = tbl.querySelector("tr");
+      if (!headerRow) return;
+
+      const ths = headerRow.querySelectorAll("th");
+      if (!ths || ths.length === 0) return;
+
+      const headers = Array.from(ths).map(th => (th.textContent || "").trim());
+
+      const rows = tbl.querySelectorAll("tr");
+      rows.forEach((tr, idx) => {
+        // pula o cabeçalho (idx 0)
+        if (idx === 0) return;
+
+        const tds = tr.querySelectorAll("td");
+        if (!tds || tds.length === 0) return;
+
+        let colIndex = 0;
+        tds.forEach(td => {
+          // se tiver colspan, não tenta rotular item a item
+          const colspan = parseInt(td.getAttribute("colspan") || "1", 10);
+          if (colspan > 1) return;
+
+          const label = headers[colIndex] || "";
+          if (label) td.setAttribute("data-label", label);
+          colIndex++;
+        });
+      });
+    });
+  }
+
+  /* ====== Cálculo (original) ====== */
+  function calcularAnosCheios(dataInicio, dataFim) {
+    if (!dataInicio || !dataFim) return 0;
+    const inicio = new Date(dataInicio);
+    const fim = new Date(dataFim);
+    let anos = fim.getFullYear() - inicio.getFullYear();
+    if (fim.getMonth() < inicio.getMonth() || (fim.getMonth() === inicio.getMonth() && fim.getDate() < inicio.getDate())) {
+      anos--;
+    }
+    return anos < 0 ? 0 : anos;
+  }
+
+  function calcularMerecimento() {
+    const anoBase = 2026;
+    const dataBaseCogitacao = document.getElementById("dataBaseCogitacao").value;
+
+    let anosSgt = 0;
+    let anosGrad = 0;
+    let anosOrgExec = 0;
+    let dataBase = null;
+
+    if (dataBaseCogitacao) {
+      dataBase = `${anoBase}-${dataBaseCogitacao}`;
+    }
+
+    const data3Sgt = document.getElementById("data3Sgt").value;
+    const dataGradAtual = document.getElementById("dataGradAtual").value;
+
+    if (dataBase && data3Sgt) anosSgt = calcularAnosCheios(data3Sgt, dataBase);
+    if (dataBase && dataGradAtual) anosGrad = calcularAnosCheios(dataGradAtual, dataBase);
+    anosOrgExec = anosGrad;
+
+    document.getElementById("displayAnosSgt").textContent = (dataBase && data3Sgt) ? anosSgt : "-";
+    document.getElementById("displayAnosGradAtual").textContent = (dataBase && dataGradAtual) ? anosGrad : "-";
+    document.getElementById("displayAnosOrgExec").textContent = (dataBase && dataGradAtual) ? anosOrgExec : "-";
+
+    const pontosAnosSgt = anosSgt * 0.5;
+    const pontosAnosGradAtual = anosGrad * 0.2;
+    const pontosAnosOrgExec = anosOrgExec * 0.1;
+    const mesesAgregadoNum = parseFloat(document.getElementById("mesesAgregado").value) || 0;
+    const pontosMesesAgregado = mesesAgregadoNum * -0.2;
+
+    document.getElementById("pontosAnosSgt").textContent = pontosAnosSgt.toFixed(2);
+    document.getElementById("pontosAnosGradAtual").textContent = pontosAnosGradAtual.toFixed(2);
+    document.getElementById("pontosAnosOrgExec").textContent = pontosAnosOrgExec.toFixed(2);
+    document.getElementById("pontosMesesAgregado").textContent = pontosMesesAgregado.toFixed(2);
+
+    const subtotalTempoServico = pontosAnosSgt + pontosAnosGradAtual + pontosAnosOrgExec + pontosMesesAgregado;
+    document.getElementById("subtotalTempoServico").textContent = subtotalTempoServico.toFixed(2);
+
+    const avSup = parseFloat(document.getElementById("avSuperior").value) || 0;
+    const avNSup = parseFloat(document.getElementById("avNormalSup").value) || 0;
+    const avNInf = parseFloat(document.getElementById("avNormalInf").value) || 0;
+    const avInf = parseFloat(document.getElementById("avInferior").value) || 0;
+    const totalAv = avSup + avNSup + avNInf + avInf;
+    const somaAv = (avSup * 3) + (avNSup * 2) + (avNInf * 1) + (avInf * -3);
+    const mediaAv = totalAv > 0 ? somaAv / totalAv : 0;
+
+    document.getElementById("totalAvSuperior").textContent = (avSup * 3).toFixed(2);
+    document.getElementById("totalAvNormalSup").textContent = (avNSup * 2).toFixed(2);
+    document.getElementById("totalAvNormalInf").textContent = (avNInf * 1).toFixed(2);
+    document.getElementById("totalAvInferior").textContent = (avInf * -3).toFixed(2);
+    document.getElementById("mediaAvaliacoes").textContent = mediaAv.toFixed(2);
+
+    const elogios = Math.min(parseFloat(document.getElementById("elogios").value) || 0, 5);
+    const pontosElogios = elogios * 0.2;
+    document.getElementById("pontosElogios").textContent = pontosElogios.toFixed(2);
+
+    const notaCFS = parseFloat(document.getElementById("notaCFS").value) || 0;
+    const notaCAS = parseFloat(document.getElementById("notaCAS").value) || 0;
+    const mediaCursosPM = (notaCFS + notaCAS) / 2;
+    const bachEF = parseFloat(document.getElementById("bachEF").value) || 0;
+    const outrosCursosPM = (parseFloat(document.getElementById("outrosCursosPM").value) || 0) * 0.6;
+
+    document.getElementById("pontosCFS").textContent = notaCFS.toFixed(3);
+    document.getElementById("pontosCAS").textContent = notaCAS.toFixed(3);
+    document.getElementById("pontosBachEF").textContent = bachEF.toFixed(2);
+    document.getElementById("pontosOutrosCursosPM").textContent = outrosCursosPM.toFixed(2);
+
+    const subtotalCursosPM = mediaCursosPM + bachEF + outrosCursosPM;
+    document.getElementById("subtotalCursosPM").textContent = subtotalCursosPM.toFixed(3);
+
+    const gradInteresse = (parseFloat(document.getElementById("gradInteresse").value) || 0) * 1;
+    const gradGeral = (parseFloat(document.getElementById("gradGeral").value) || 0) * 0.3;
+    const posInteresse = (parseFloat(document.getElementById("posInteresse").value) || 0) * 0.5;
+    const posGeral = (parseFloat(document.getElementById("posGeral").value) || 0) * 0.2;
+    const mestrado = (parseFloat(document.getElementById("mestrado").value) || 0) * 1.5;
+    const doutorado = (parseFloat(document.getElementById("doutorado").value) || 0) * 2;
+
+    document.getElementById("pontosGradInteresse").textContent = gradInteresse.toFixed(2);
+    document.getElementById("pontosGradGeral").textContent = gradGeral.toFixed(2);
+    document.getElementById("pontosPosInteresse").textContent = posInteresse.toFixed(2);
+    document.getElementById("pontosPosGeral").textContent = posGeral.toFixed(2);
+    document.getElementById("pontosMestrado").textContent = mestrado.toFixed(2);
+    document.getElementById("pontosDoutorado").textContent = doutorado.toFixed(2);
+
+    const subtotalCursosSuperiores = gradInteresse + gradGeral + posInteresse + posGeral + mestrado + doutorado;
+    document.getElementById("subtotalCursosSuperiores").textContent = subtotalCursosSuperiores.toFixed(2);
+
+    const outrosCursos = Math.min((parseFloat(document.getElementById("outrosCursos").value) || 0) * 0.2, 0.6);
+    document.getElementById("pontosOutrosCursos").textContent = outrosCursos.toFixed(2);
+
+    const medBrigTobias = parseFloat(document.getElementById("medBrigTobias").value) || 0;
+    const medValorMil = parseFloat(document.getElementById("medValorMil").value) || 0;
+    const medPedroDias = parseFloat(document.getElementById("medPedroDias").value) || 0;
+    const medCruzSangue = parseFloat(document.getElementById("medCruzSangue").value) || 0;
+    const laureaMerito = parseFloat(document.getElementById("laureaMerito").value) || 0;
+
+    document.getElementById("pontosBrigTobias").textContent = medBrigTobias.toFixed(2);
+    document.getElementById("pontosValorMil").textContent = medValorMil.toFixed(2);
+    document.getElementById("pontosPedroDias").textContent = medPedroDias.toFixed(2);
+    document.getElementById("pontosCruzSangue").textContent = medCruzSangue.toFixed(2);
+    document.getElementById("pontosLaureaMerito").textContent = laureaMerito.toFixed(2);
+
+    const subtotalCondecoracoes = medBrigTobias + medValorMil + medPedroDias + medCruzSangue + laureaMerito;
+    document.getElementById("subtotalCondecoracoes").textContent = subtotalCondecoracoes.toFixed(2);
+
+    const idiomas = (parseFloat(document.getElementById("idiomas").value) || 0) * 0.2;
+    document.getElementById("pontosIdiomas").textContent = idiomas.toFixed(2);
+
+    const comportamento = parseFloat(document.getElementById("comportamento").value) || 0;
+    document.getElementById("pontosComportamento").textContent = comportamento.toFixed(2);
+
+    const tafMB = parseFloat(document.getElementById("tafMuitoBom").value) || 0;
+    const tafB = parseFloat(document.getElementById("tafBom").value) || 0;
+    const tafR = parseFloat(document.getElementById("tafRegular").value) || 0;
+    const tafT4 = parseFloat(document.getElementById("tafTAF4").value) || 0;
+    const tafI = parseFloat(document.getElementById("tafInapto").value) || 0;
+    const tafNRMed = parseFloat(document.getElementById("tafNaoRealizadoMed").value) || 0;
+    const tafNR = parseFloat(document.getElementById("tafNaoRealizado").value) || 0;
+
+    const totalTaf = tafMB + tafB + tafR + tafT4 + tafI + tafNRMed + tafNR;
+    const somaTaf = (tafMB * 3) + (tafB * 2) + (tafR * 1) + (tafT4 * 1) + (tafI * 0) + (tafNRMed * 0) + (tafNR * -3);
+    const mediaTaf = totalTaf > 0 ? somaTaf / totalTaf : 0;
+
+    document.getElementById("totalTafMuitoBom").textContent = (tafMB * 3).toFixed(2);
+    document.getElementById("totalTafBom").textContent = (tafB * 2).toFixed(2);
+    document.getElementById("totalTafRegular").textContent = (tafR * 1).toFixed(2);
+    document.getElementById("totalTafTAF4").textContent = (tafT4 * 1).toFixed(2);
+    document.getElementById("totalTafInapto").textContent = (tafI * 0).toFixed(2);
+    document.getElementById("totalTafNaoRealizadoMed").textContent = (tafNRMed * 0).toFixed(2);
+    document.getElementById("totalTafNaoRealizado").textContent = (tafNR * -3).toFixed(2);
+    document.getElementById("mediaTaf").textContent = mediaTaf.toFixed(2);
+
+    const advertencia = (parseFloat(document.getElementById("puniAdvertencia").value) || 0) * -0.1;
+    const repreensao = (parseFloat(document.getElementById("puniRepreensao").value) || 0) * -0.3;
+
+    const qtdPermanencia = parseFloat(document.getElementById("puniPermanencia").value) || 0;
+    let permanencia = 0;
+    for (let i = 0; i < qtdPermanencia; i++) permanencia -= 0.5 * Math.pow(2, i);
+
+    const qtdDetencao = parseFloat(document.getElementById("puniDetencao").value) || 0;
+    let detencao = 0;
+    for (let i = 0; i < qtdDetencao; i++) detencao -= 2 * Math.pow(2, i);
+
+    document.getElementById("descontoAdvertencia").textContent = advertencia.toFixed(2);
+    document.getElementById("descontoRepreensao").textContent = repreensao.toFixed(2);
+    document.getElementById("descontoPermanencia").textContent = permanencia.toFixed(2);
+    document.getElementById("descontoDetencao").textContent = detencao.toFixed(2);
+
+    const subtotalPunicoes = advertencia + repreensao + permanencia + detencao;
+    document.getElementById("subtotalPunicoes").textContent = subtotalPunicoes.toFixed(2);
+
+    const conceitoComandante = 10;
+    const conceitoCPP = 10;
+    const subtotalConceitosFixos = conceitoComandante + conceitoCPP;
+    document.getElementById("pontosConceitoComandante").textContent = conceitoComandante.toFixed(2);
+    document.getElementById("pontosConceitoCPP").textContent = conceitoCPP.toFixed(2);
+    document.getElementById("subtotalConceitosFixos").textContent = subtotalConceitosFixos.toFixed(2);
+
+    const crimeDoloso6Mais = (parseFloat(document.getElementById("crimeDoloso6Mais").value) || 0) * -2;
+    const crimeDoloso6Menos = (parseFloat(document.getElementById("crimeDoloso6Menos").value) || 0) * -1.5;
+    const crimeCulposo6Mais = (parseFloat(document.getElementById("crimeCulposo6Mais").value) || 0) * -1;
+    const crimeCulposo6Menos = (parseFloat(document.getElementById("crimeCulposo6Menos").value) || 0) * -0.5;
+    const contravencao = (parseFloat(document.getElementById("contravencao").value) || 0) * -0.3;
+
+    document.getElementById("descontoCrimeDoloso6Mais").textContent = crimeDoloso6Mais.toFixed(2);
+    document.getElementById("descontoCrimeDoloso6Menos").textContent = crimeDoloso6Menos.toFixed(2);
+    document.getElementById("descontoCrimeCulposo6Mais").textContent = crimeCulposo6Mais.toFixed(2);
+    document.getElementById("descontoCrimeCulposo6Menos").textContent = crimeCulposo6Menos.toFixed(2);
+    document.getElementById("descontoContravencao").textContent = contravencao.toFixed(2);
+
+    const subtotalCondenacoes = crimeDoloso6Mais + crimeDoloso6Menos + crimeCulposo6Mais + crimeCulposo6Menos + contravencao;
+    document.getElementById("subtotalCondenacoes").textContent = subtotalCondenacoes.toFixed(2);
+
+    const totalGeral =
+      mediaAv + pontosElogios + subtotalCursosPM + subtotalCursosSuperiores + outrosCursos +
+      subtotalCondecoracoes + idiomas + comportamento + subtotalTempoServico + mediaTaf +
+      subtotalPunicoes + subtotalCondenacoes + subtotalConceitosFixos;
+
+    document.getElementById("totalGeral").textContent = `PONTUAÇÃO TOTAL: ${totalGeral.toFixed(3)} PONTOS`;
+  }
+
+  document.addEventListener("input", calcularMerecimento);
+  document.addEventListener("change", calcularMerecimento);
+
+  window.addEventListener("load", () => {
+    buildAllMobileSelects();  // cria listas suspensas para todos inputs numéricos (mobile)
+    applyDataLabels();        // garante visual vertical no mobile sem scroll horizontal
+    calcularMerecimento();
+  });
+
+  function gerarPDF() {
+    calcularMerecimento();
+
+    const jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+    if (!jsPDF) {
+      alert("Biblioteca jsPDF não carregou. Verifique sua conexão e tente novamente.");
+      return;
+    }
+    const doc = new jsPDF();
+
+    const agora = new Date();
+    const dataHoraEmissao = agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+    doc.setFontSize(14);
+    doc.text("Relatório de Avaliação de Merecimento – Sgt PM", 10, 15);
+
+    doc.setFontSize(11);
+    doc.text(`Nome: ${document.getElementById("nome").value}`, 10, 25);
+    doc.text(`Graduação: ${document.getElementById("graduacao").value}`, 10, 32);
+    doc.text(`OPM: ${document.getElementById("opm").value}`, 10, 39);
+
+    const dataBaseSel = document.getElementById("dataBaseCogitacao").value;
+    let dataBaseTexto = "";
+    if (dataBaseSel === "03-31") dataBaseTexto = "1º Semestre de 2026";
+    else if (dataBaseSel === "08-31") dataBaseTexto = "2º Semestre de 2026";
+    doc.text(`Cogitação: ${dataBaseTexto}`, 10, 46);
+
+    const totalTexto = document.getElementById("totalGeral").textContent;
+    const totalNumerico = (totalTexto.match(/[-]?\d+(\.\d+)?/) || [null])[0];
+
+    doc.autoTable({
+      startY: 55,
+      margin: { bottom: 30 },
+      head: [["Seção", "Descrição", "Valor/Pontos"]],
+      body: [
+        ["1", "Média SADE", document.getElementById("mediaAvaliacoes").textContent],
+        ["2", "Elogios", document.getElementById("pontosElogios").textContent],
+        ["3", "Subtotal Cursos PM", document.getElementById("subtotalCursosPM").textContent],
+        ["4", "Subtotal Cursos Superiores", document.getElementById("subtotalCursosSuperiores").textContent],
+        ["5", "Outros Cursos", document.getElementById("pontosOutrosCursos").textContent],
+        ["6", "Subtotal Condecorações", document.getElementById("subtotalCondecoracoes").textContent],
+        ["7", "Idiomas", document.getElementById("pontosIdiomas").textContent],
+        ["8", "Comportamento", document.getElementById("pontosComportamento").textContent],
+        ["9", "Tempo de Serviço", document.getElementById("subtotalTempoServico").textContent],
+        ["10", "Média TAF", document.getElementById("mediaTaf").textContent],
+        ["11", "Subtotal Punições", document.getElementById("subtotalPunicoes").textContent],
+        ["12", "Conceito do Comandante (subjetivo)", document.getElementById("pontosConceitoComandante").textContent],
+        ["12", "Conceito da CPP (subjetivo)", document.getElementById("pontosConceitoCPP").textContent],
+        ["13", "Subtotal Condenações", document.getElementById("subtotalCondenacoes").textContent],
+        ["TOTAL", "Pontuação Final", totalNumerico ? Number(totalNumerico).toFixed(3) : totalTexto]
+      ]
+    });
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const centerX = pageWidth / 2;
+    let y = pageHeight - 26;
+
+    doc.setDrawColor(180);
+    doc.setLineWidth(0.3);
+    doc.line(10, y, pageWidth - 10, y);
+    y += 6;
+
+    doc.setFontSize(9);
+    doc.setTextColor(90);
+    doc.text("Desenvolvido por 2º Sgt PM Elton Pereira dos Santos - Todos os direitos reservados", centerX, y, { align: "center" });
+    y += 5;
+
+    doc.setFontSize(8.5);
+    doc.setTextColor(110);
+    doc.text(doc.splitTextToSize("Compete exclusivamente à CPP a aferição e validação das informações, não devendo o presente relatório ser utilizado para fins de questionamento ou impugnação.", pageWidth - 20), centerX, y, { align: "center" });
+    y += 8;
+
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(versaoSistema, centerX, y, { align: "center" });
+    y += 4;
+
+    doc.text(`Emitido em: ${dataHoraEmissao}`, centerX, y, { align: "center" });
+
+    doc.save("Relatorio_Merecimento_SgtPM.pdf");
+  }
+
+  function limparFormulario() {
+    if (confirm("Deseja realmente limpar todos os dados do formulário?")) {
+      location.reload();
+    }
+  }
+</script>
+
+</body>
+</html>
