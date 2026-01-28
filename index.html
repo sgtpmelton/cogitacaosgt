@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Avaliação de Merecimento - Sgt PM - v1.7/title>
+  <title>Sistema de Avaliação de Merecimento - Sgt PM - v1.7</title>
 
   <!-- jsPDF + AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1255,7 +1255,7 @@ function desenharMarcaDagua(doc, texto) {
   // ✅ compensações visuais para rotação de 45°
   // (X corrige o "puxar" lateral; Y corrige o "subir/descer")
   const offsetX = textWidth * 0.14;  // empurra para a direita
-  const offsetY = textWidth * 0.20  // empurra para baixo
+  const offsetY = textWidth * 0.20;  // empurra para baixo
 
   doc.text(texto, centerX + offsetX, centerY + offsetY, {
     align: "center",
@@ -1471,4 +1471,5 @@ doc.autoTable({
 
 </body>
 </html>
+
 
