@@ -80,6 +80,11 @@
       table-layout: fixed;        /* favorece quebra de linha */
     }
 
+    /* IDENTIFICAÇÃO: duas tabelas com espaçamento controlado */
+.ident-tables { display: flex; flex-direction: column; gap: 12px; }
+.ident-tables table { margin: 0; }
+
+    
     th, td {
       padding: 12px 8px;
       text-align: left;
@@ -322,17 +327,17 @@
 <!-- IDENTIFICAÇÃO -->
 <div class="section">
   <h2>IDENTIFICAÇÃO</h2>
-  <div class="table-wrap">
+
+  <div class="table-wrap ident-tables">
+
+    <!-- BLOCO 1 -->
     <table>
-      <!-- LINHA 1 (Cabeçalho) -->
       <tr>
         <th>Graduação Atual</th>
         <th>RE</th>
         <th>Nome</th>
         <th>OPM</th>
       </tr>
-
-      <!-- LINHA 1 (Campos) -->
       <tr>
         <td>
           <select id="graduacao" aria-label="Graduação">
@@ -348,16 +353,16 @@
 
         <td><input type="text" id="opm" aria-label="OPM" placeholder="Unidade/OPM"></td>
       </tr>
+    </table>
 
-      <!-- LINHA 2 (Cabeçalho) -->
+    <!-- BLOCO 2 -->
+    <table>
       <tr>
         <th>Data 3º Sgt</th>
         <th>Data Grad. Atual</th>
         <th>Cogitação</th>
         <th>Ano</th>
       </tr>
-
-      <!-- LINHA 2 (Campos) -->
       <tr>
         <td><input type="date" id="data3Sgt" aria-label="Data 3º Sgt"></td>
 
@@ -379,6 +384,7 @@
         </td>
       </tr>
     </table>
+
   </div>
 </div>
 
@@ -1471,5 +1477,3 @@ doc.autoTable({
 
 </body>
 </html>
-
-
