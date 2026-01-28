@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Avaliação de Merecimento - Sgt PM - v1.6</title>
+  <title>Sistema de Avaliação de Merecimento - Sgt PM - v1.7/title>
 
   <!-- jsPDF + AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -319,42 +319,70 @@
 <div class="container">
   <h1>SISTEMA DE AVALIAÇÃO DE MERECIMENTO<br>SARGENTO PM</h1>
 
-  <!-- IDENTIFICAÇÃO -->
-  <div class="section">
-    <h2>IDENTIFICAÇÃO</h2>
-    <div class="table-wrap">
-      <table>
-        <tr>
-          <th>RE/Nome</th>
-          <th>Graduação Atual</th>
-          <th>Data 3º Sgt</th>
-          <th>Data Grad. Atual</th>
-          <th>Cogitação</th>
-          <th>OPM</th>
-        </tr>
-        <tr>
-          <td><input type="text" id="nome" aria-label="Nome"></td>
-          <td>
-            <select id="graduacao" aria-label="Graduação">
-              <option value="">Selecione</option>
-              <option value="2º Sgt PM">2º Sgt PM</option>
-              <option value="1º Sgt PM">1º Sgt PM</option>
-            </select>
-          </td>
-          <td><input type="date" id="data3Sgt" aria-label="Data 3º Sgt"></td>
-          <td><input type="date" id="dataGradAtual" aria-label="Data Graduação Atual"></td>
-          <td>
-            <select id="dataBaseCogitacao" aria-label="Cogitação">
-              <option value="">Selecione</option>
-              <option value="03-31">1º Sem 2026</option>
-              <option value="08-31">2º Sem 2026</option>
-            </select>
-          </td>
-          <td><input type="text" id="opm" aria-label="OPM"></td>
-        </tr>
-      </table>
-    </div>
+<!-- IDENTIFICAÇÃO -->
+<div class="section">
+  <h2>IDENTIFICAÇÃO</h2>
+  <div class="table-wrap">
+    <table>
+      <!-- LINHA 1 (Cabeçalho) -->
+      <tr>
+        <th>Graduação Atual</th>
+        <th>RE</th>
+        <th>Nome</th>
+        <th>OPM</th>
+      </tr>
+
+      <!-- LINHA 1 (Campos) -->
+      <tr>
+        <td>
+          <select id="graduacao" aria-label="Graduação">
+            <option value="">Selecione</option>
+            <option value="2º Sgt PM">2º Sgt PM</option>
+            <option value="1º Sgt PM">1º Sgt PM</option>
+          </select>
+        </td>
+
+        <td><input type="text" id="re" aria-label="RE" placeholder="Ex.: 123456"></td>
+
+        <td><input type="text" id="nome" aria-label="Nome" placeholder="Nome completo"></td>
+
+        <td><input type="text" id="opm" aria-label="OPM" placeholder="Unidade/OPM"></td>
+      </tr>
+
+      <!-- LINHA 2 (Cabeçalho) -->
+      <tr>
+        <th>Data 3º Sgt</th>
+        <th>Data Grad. Atual</th>
+        <th>Cogitação</th>
+        <th>Ano</th>
+      </tr>
+
+      <!-- LINHA 2 (Campos) -->
+      <tr>
+        <td><input type="date" id="data3Sgt" aria-label="Data 3º Sgt"></td>
+
+        <td><input type="date" id="dataGradAtual" aria-label="Data Graduação Atual"></td>
+
+        <td>
+          <select id="dataBaseCogitacao" aria-label="Semestre-base">
+            <option value="">Selecione</option>
+            <option value="03-31">1º Semestre</option>
+            <option value="08-31">2º Semestre</option>
+          </select>
+        </td>
+
+        <td>
+          <select id="anoBase" aria-label="Ano-base">
+            <option value="">Ano</option>
+            <!-- JS preenche -->
+          </select>
+        </td>
+      </tr>
+    </table>
   </div>
+</div>
+
+
 
   <!-- 1. AVALIAÇÃO DE DESEMPENHO (SADE) -->
   <div class="section">
@@ -826,11 +854,54 @@
   <div class="linha2">
     Compete exclusivamente à CPP a aferição e validação das informações, não devendo o presente relatório ser utilizado para fins de questionamento ou impugnação.
   </div>
-  <div class="linha2">Versão 1.6 – Atualizada em 26 jan. 2026</div>
+  <div class="linha2">Versão 1.7– Atualizada em 28 jan. 2026</div>
 </div>
 
 <script>
-  const versaoSistema = "Versão 1.6 – Atualizada em 26 jan. 2026";
+  const versaoSistema = "Versão 1.7 – Atualizada em 28 jan. 2026";
+  
+ function preencherSelectAnoBase() {
+  const selAno = document.getElementById("anoBase");
+  if (!selAno) return;
+
+  const ANO_INICIAL = 2025;
+  const ANO_FINAL = 2055;
+
+  // guarda seleção atual (se houver) para não sobrescrever escolha do usuário
+  const valorAtual = selAno.value;
+
+  // limpa e recria
+  selAno.innerHTML = "";
+
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = "Ano";
+  selAno.appendChild(opt0);
+
+  for (let a = ANO_INICIAL; a <= ANO_FINAL; a++) {
+    const opt = document.createElement("option");
+    opt.value = String(a);
+    opt.textContent = String(a);
+    selAno.appendChild(opt);
+  }
+
+  // define valor: mantém o que já estava selecionado (se válido),
+  // senão usa o ano atual "clampado" no intervalo
+  const anoAtual = new Date().getFullYear();
+
+  const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
+  const anoPadrao = clamp(anoAtual, ANO_INICIAL, ANO_FINAL);
+
+  const valorValido =
+    valorAtual &&
+    Number.isFinite(parseInt(valorAtual, 10)) &&
+    parseInt(valorAtual, 10) >= ANO_INICIAL &&
+    parseInt(valorAtual, 10) <= ANO_FINAL;
+
+  selAno.value = valorValido ? valorAtual : String(anoPadrao);
+}
+
+
 
   /* ====== MOBILE: cria selects “espelho” para inputs numéricos (sem alterar IDs) ====== */
   function inferMaxForInput(input){
@@ -967,17 +1038,18 @@
   }
 
   function calcularMerecimento() {
-    const anoBase = 2026;
-    const dataBaseCogitacao = document.getElementById("dataBaseCogitacao").value;
+    const anoBase = parseInt(document.getElementById("anoBase").value, 10);
+const dataBaseCogitacao = document.getElementById("dataBaseCogitacao").value;
 
     let anosSgt = 0;
     let anosGrad = 0;
     let anosOrgExec = 0;
     let dataBase = null;
 
-    if (dataBaseCogitacao) {
-      dataBase = `${anoBase}-${dataBaseCogitacao}`;
-    }
+if (dataBaseCogitacao && Number.isFinite(anoBase)) {
+  dataBase = `${anoBase}-${dataBaseCogitacao}`;
+}
+
 
     const data3Sgt = document.getElementById("data3Sgt").value;
     const dataGradAtual = document.getElementById("dataGradAtual").value;
@@ -1150,95 +1222,246 @@
   document.addEventListener("input", calcularMerecimento);
   document.addEventListener("change", calcularMerecimento);
 
-  window.addEventListener("load", () => {
-    buildAllMobileSelects();  // cria listas suspensas para todos inputs numéricos (mobile)
-    applyDataLabels();        // garante visual vertical no mobile sem scroll horizontal
-    calcularMerecimento();
-  });
+window.addEventListener("load", () => {
+  preencherSelectAnoBase();   // << obrigatório
+  buildAllMobileSelects();
+  applyDataLabels();
+  calcularMerecimento();
+});
 
-  function gerarPDF() {
-    calcularMerecimento();
+function desenharMarcaDagua(doc, texto) {
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
 
-    const jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
-    if (!jsPDF) {
-      alert("Biblioteca jsPDF não carregou. Verifique sua conexão e tente novamente.");
-      return;
-    }
-    const doc = new jsPDF();
+  doc.saveGraphicsState();
 
-    const agora = new Date();
-    const dataHoraEmissao = agora.toLocaleDateString("pt-BR") + " " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-    doc.setFontSize(14);
-    doc.text("Relatório de Avaliação de Merecimento – Sgt PM", 10, 15);
-
-    doc.setFontSize(11);
-    doc.text(`Nome: ${document.getElementById("nome").value}`, 10, 25);
-    doc.text(`Graduação: ${document.getElementById("graduacao").value}`, 10, 32);
-    doc.text(`OPM: ${document.getElementById("opm").value}`, 10, 39);
-
-    const dataBaseSel = document.getElementById("dataBaseCogitacao").value;
-    let dataBaseTexto = "";
-    if (dataBaseSel === "03-31") dataBaseTexto = "1º Semestre de 2026";
-    else if (dataBaseSel === "08-31") dataBaseTexto = "2º Semestre de 2026";
-    doc.text(`Cogitação: ${dataBaseTexto}`, 10, 46);
-
-    const totalTexto = document.getElementById("totalGeral").textContent;
-    const totalNumerico = (totalTexto.match(/[-]?\d+(\.\d+)?/) || [null])[0];
-
-    doc.autoTable({
-      startY: 55,
-      margin: { bottom: 30 },
-      head: [["Seção", "Descrição", "Valor/Pontos"]],
-      body: [
-        ["1", "Média SADE", document.getElementById("mediaAvaliacoes").textContent],
-        ["2", "Elogios", document.getElementById("pontosElogios").textContent],
-        ["3", "Subtotal Cursos PM", document.getElementById("subtotalCursosPM").textContent],
-        ["4", "Subtotal Cursos Superiores", document.getElementById("subtotalCursosSuperiores").textContent],
-        ["5", "Outros Cursos", document.getElementById("pontosOutrosCursos").textContent],
-        ["6", "Subtotal Condecorações", document.getElementById("subtotalCondecoracoes").textContent],
-        ["7", "Idiomas", document.getElementById("pontosIdiomas").textContent],
-        ["8", "Comportamento", document.getElementById("pontosComportamento").textContent],
-        ["9", "Tempo de Serviço", document.getElementById("subtotalTempoServico").textContent],
-        ["10", "Média TAF", document.getElementById("mediaTaf").textContent],
-        ["11", "Subtotal Punições", document.getElementById("subtotalPunicoes").textContent],
-        ["12", "Conceito do Comandante (subjetivo)", document.getElementById("pontosConceitoComandante").textContent],
-        ["12", "Conceito da CPP (subjetivo)", document.getElementById("pontosConceitoCPP").textContent],
-        ["13", "Subtotal Condenações", document.getElementById("subtotalCondenacoes").textContent],
-        ["TOTAL", "Pontuação Final", totalNumerico ? Number(totalNumerico).toFixed(3) : totalTexto]
-      ]
-    });
-
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const centerX = pageWidth / 2;
-    let y = pageHeight - 26;
-
-    doc.setDrawColor(180);
-    doc.setLineWidth(0.3);
-    doc.line(10, y, pageWidth - 10, y);
-    y += 6;
-
-    doc.setFontSize(9);
-    doc.setTextColor(90);
-    doc.text("Desenvolvido por 2º Sgt PM Elton Pereira dos Santos - Todos os direitos reservados", centerX, y, { align: "center" });
-    y += 5;
-
-    doc.setFontSize(8.5);
-    doc.setTextColor(110);
-    doc.text(doc.splitTextToSize("Compete exclusivamente à CPP a aferição e validação das informações, não devendo o presente relatório ser utilizado para fins de questionamento ou impugnação.", pageWidth - 20), centerX, y, { align: "center" });
-    y += 8;
-
-    doc.setFontSize(8);
-    doc.setTextColor(120);
-    doc.text(versaoSistema, centerX, y, { align: "center" });
-    y += 4;
-
-    doc.text(`Emitido em: ${dataHoraEmissao}`, centerX, y, { align: "center" });
-
-    doc.save("Relatorio_Merecimento_SgtPM.pdf");
+  // Opacidade (se suportado)
+  if (doc.setGState && window.jspdf?.GState) {
+    doc.setGState(new window.jspdf.GState({ opacity: 0.12 }));
+    doc.setTextColor(220, 0, 0);
+  } else {
+    doc.setTextColor(255, 170, 170);
   }
 
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(42);
+
+  const centerX = w / 2;
+  const centerY = h / 2;
+
+  // mede largura do texto na fonte atual
+  const textWidth = doc.getTextWidth(texto);
+
+  // ✅ compensações visuais para rotação de 45°
+  // (X corrige o "puxar" lateral; Y corrige o "subir/descer")
+  const offsetX = textWidth * 0.14;  // empurra para a direita
+  const offsetY = textWidth * 0.20  // empurra para baixo
+
+  doc.text(texto, centerX + offsetX, centerY + offsetY, {
+    align: "center",
+    angle: 45
+  });
+
+  doc.restoreGraphicsState();
+  doc.setTextColor(0, 0, 0);
+}
+
+function validarIdentificacao() {
+  const camposObrigatorios = [
+    { id: "graduacao", label: "Graduação atual" },
+    { id: "re", label: "RE" },
+    { id: "nome", label: "Nome" },
+    { id: "opm", label: "OPM" },
+    { id: "data3Sgt", label: "Data de 3º Sgt PM" },
+    { id: "dataGradAtual", label: "Data da Graduação atual" },
+    { id: "dataBaseCogitacao", label: "Cogitação (Semestre)" },
+    { id: "anoBase", label: "Ano-base" }
+  ];
+
+  const faltando = [];
+
+  camposObrigatorios.forEach(campo => {
+    const el = document.getElementById(campo.id);
+    if (!el || !el.value || el.value.trim() === "") {
+      faltando.push(campo.label);
+    }
+  });
+
+  if (faltando.length > 0) {
+    alert(
+      "Para gerar o PDF, preencha obrigatoriamente os seguintes campos:\n\n" +
+      "• " + faltando.join("\n• ")
+    );
+    return false;
+  }
+
+  return true;
+}
+
+
+function gerarPDF() {
+
+  if (!validarIdentificacao()) return;
+
+  calcularMerecimento();
+
+
+  const jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+  if (!jsPDF) {
+    alert("Biblioteca jsPDF não carregou. Verifique sua conexão e tente novamente.");
+    return;
+  }
+
+  const doc = new jsPDF();
+  
+  desenharMarcaDagua(doc, "NÃO POSSUI VALOR OFICIAL");
+
+
+  const agora = new Date();
+  const dataHoraEmissao =
+    agora.toLocaleDateString("pt-BR") + " " +
+    agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const centerX = pageW / 2;
+
+  // ===== Dados da tela =====
+  const grad = document.getElementById("graduacao").value || "-";
+  const re = document.getElementById("re").value || "-";
+  const nome = document.getElementById("nome").value || "-";
+  const opm = document.getElementById("opm").value || "-";
+
+  const data3 = document.getElementById("data3Sgt").value || "";
+  const dataGrad = document.getElementById("dataGradAtual").value || "";
+
+  const fmtDataBR = (iso) => {
+    if (!iso) return "-";
+    const [y, m, d] = iso.split("-");
+    if (!y || !m || !d) return "-";
+    return `${d}/${m}/${y}`;
+  };
+
+  // Cogitação + Ano
+  const anoBasePDF = parseInt(document.getElementById("anoBase").value, 10);
+  const semBase = document.getElementById("dataBaseCogitacao").value;
+
+  let cogTexto = "-";
+  if (Number.isFinite(anoBasePDF) && semBase) {
+    if (semBase === "03-31") cogTexto = `1º Semestre de ${anoBasePDF}`;
+    else if (semBase === "08-31") cogTexto = `2º Semestre de ${anoBasePDF}`;
+  }
+
+  // ===== Cabeçalho (título) =====
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Relatório de Avaliação de Merecimento – Sgt PM", centerX, 16, { align: "center" });
+
+  // ===== Linha principal centralizada (negrito) =====
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(`${grad} ${re} ${nome} - ${opm}`, centerX, 28, { align: "center" });
+
+  // ===== Demais infos à esquerda (datas/semestre em negrito) =====
+  doc.setFontSize(11);
+
+  let yInfo = 38;
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Data de 3º Sgt PM: ", 10, yInfo);
+  doc.setFont("helvetica", "bold");
+  doc.text(fmtDataBR(data3), 55, yInfo);
+
+  yInfo += 7;
+  doc.setFont("helvetica", "normal");
+  doc.text("Data da Graduação atual: ", 10, yInfo);
+  doc.setFont("helvetica", "bold");
+  doc.text(fmtDataBR(dataGrad), 72, yInfo);
+
+  yInfo += 7;
+  doc.setFont("helvetica", "normal");
+  doc.text("Cogitação: ", 10, yInfo);
+  doc.setFont("helvetica", "bold");
+  doc.text(cogTexto, 32, yInfo);
+
+  // Start do relatório/tabela (abaixo do cabeçalho)
+  const startY = 60;
+
+  // Total (corrigido)
+  const totalTexto = document.getElementById("totalGeral").textContent || "";
+  const totalNumerico = (totalTexto.match(/[-]?\d+(?:\.\d+)?/) || [null])[0];
+
+  // ===== Tabela =====
+doc.autoTable({
+  startY,
+  margin: { bottom: 30 },
+
+  // desenha a marca d'água a cada página gerada pela tabela
+  didDrawPage: function () {
+    desenharMarcaDagua(doc, "NÃO POSSUI VALOR OFICIAL");
+  },
+
+  head: [["Seção", "Descrição", "Valor/Pontos"]],
+  body: [
+    ["1", "Média SADE", document.getElementById("mediaAvaliacoes").textContent],
+    ["2", "Elogios", document.getElementById("pontosElogios").textContent],
+    ["3", "Subtotal Cursos PM", document.getElementById("subtotalCursosPM").textContent],
+    ["4", "Subtotal Cursos Superiores", document.getElementById("subtotalCursosSuperiores").textContent],
+    ["5", "Outros Cursos", document.getElementById("pontosOutrosCursos").textContent],
+    ["6", "Subtotal Condecorações", document.getElementById("subtotalCondecoracoes").textContent],
+    ["7", "Idiomas", document.getElementById("pontosIdiomas").textContent],
+    ["8", "Comportamento", document.getElementById("pontosComportamento").textContent],
+    ["9", "Tempo de Serviço", document.getElementById("subtotalTempoServico").textContent],
+    ["10", "Média TAF", document.getElementById("mediaTaf").textContent],
+    ["11", "Subtotal Punições", document.getElementById("subtotalPunicoes").textContent],
+    ["12", "Conceito do Comandante (subjetivo)", document.getElementById("pontosConceitoComandante").textContent],
+    ["12", "Conceito da CPP (subjetivo)", document.getElementById("pontosConceitoCPP").textContent],
+    ["13", "Subtotal Condenações", document.getElementById("subtotalCondenacoes").textContent],
+    ["TOTAL", "Pontuação Final", totalNumerico ? Number(totalNumerico).toFixed(3) : totalTexto]
+  ]
+});
+
+  // ===== Rodapé =====
+  let y = pageH - 26;
+
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.3);
+  doc.line(10, y, pageW - 10, y);
+  y += 6;
+
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.setFont("helvetica", "normal");
+  doc.text("Desenvolvido por 2º Sgt PM Elton Pereira dos Santos - Todos os direitos reservados", centerX, y, { align: "center" });
+  y += 5;
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(110);
+  doc.text(
+    doc.splitTextToSize(
+      "Compete exclusivamente à CPP a aferição e validação das informações, não devendo o presente relatório ser utilizado para fins de questionamento ou impugnação.",
+      pageW - 20
+    ),
+    centerX,
+    y,
+    { align: "center" }
+  );
+  y += 8;
+
+  doc.setFontSize(8);
+  doc.setTextColor(120);
+  doc.text(versaoSistema, centerX, y, { align: "center" });
+  y += 4;
+
+  doc.text(`Emitido em: ${dataHoraEmissao}`, centerX, y, { align: "center" });
+
+  // Nome do arquivo: 6 primeiros dígitos do RE
+  const reRaw = (document.getElementById("re").value || "").trim();
+  const re6 = reRaw.replace(/\D/g, "").slice(0, 6) || "Relatorio";
+  doc.save(`${re6}.pdf`);
+}
+
+  
   function limparFormulario() {
     if (confirm("Deseja realmente limpar todos os dados do formulário?")) {
       location.reload();
@@ -1248,5 +1471,3 @@
 
 </body>
 </html>
-
-
