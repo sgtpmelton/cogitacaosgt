@@ -371,8 +371,8 @@
         <td>
           <select id="dataBaseCogitacao" aria-label="Semestre-base">
             <option value="">Selecione</option>
-            <option value="03-31">1º Semestre</option>
-            <option value="08-31">2º Semestre</option>
+            <option value="01-15">1º Semestre</option>
+            <option value="06-15">2º Semestre</option>
           </select>
         </td>
 
@@ -1354,8 +1354,8 @@ function gerarPDF() {
 
   let cogTexto = "-";
   if (Number.isFinite(anoBasePDF) && semBase) {
-    if (semBase === "03-31") cogTexto = `1º Semestre de ${anoBasePDF}`;
-    else if (semBase === "08-31") cogTexto = `2º Semestre de ${anoBasePDF}`;
+    if (semBase === "01-15") cogTexto = `1º Semestre de ${anoBasePDF}`;
+    else if (semBase === "06-15") cogTexto = `2º Semestre de ${anoBasePDF}`;
   }
 
   // ===== Cabeçalho (título) =====
@@ -1477,4 +1477,5 @@ doc.autoTable({
 
 </body>
 </html>
+
 
